@@ -89,6 +89,6 @@ def use_with_datasets():
 if __name__ == '__main__':
     # data_transform()
     # transform_resize()
-    transform_crop_flip()
-    # make_normalize()
+    # transform_crop_flip()
+    make_normalize()
     # use_with_datasets()
