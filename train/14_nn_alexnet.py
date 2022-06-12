@@ -14,9 +14,12 @@ def test_alexnet_model():
     print(alexnet)
 
     img = Image.open('img/dog.jpg')
-    transform = transforms.Compose([transforms.RandomResizedCrop((224, 224)),
-                                    transforms.ToTensor(),
-                                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+    transform1 = transforms.Compose([transforms.Resize((224, 224))])  # 这里建议Resize
+    transform = transforms.Compose(
+        [transforms.RandomResizedCrop((224, 224)),  # RandomResizedCrop 和CenterCrop确实是按照像素1：1的去剪裁的 图会变得很小
+         transforms.ToTensor(),
+         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+    transform1(img).show()
     input_tensor = transform(img).unsqueeze(0)
     # 得到模型输出结果
     res = alexnet(input_tensor)
@@ -27,7 +30,7 @@ def test_alexnet_model():
 # 加载cifar10数据 并打印出来
 def load_data():
     cifar10_dataset = torchvision.datasets.CIFAR10(root="./data",
-                                                   train=False,
+                                                   train=True,
                                                    transform=transforms.ToTensor(),
                                                    target_transform=None,
                                                    download=True)
@@ -39,6 +42,7 @@ def load_data():
     grid_tensor = torchvision.utils.make_grid(img_tensor, nrow=16, padding=2)
     img = transforms.ToPILImage()(grid_tensor)
     img.show()
+    img.save("./img/cifar10_train_gird.jpg")
 
 
 # 修改模型的默认输出分类数
@@ -79,7 +83,7 @@ def start_train():
     dataloader = DataLoader(
         dataset=cifar10_dataset,  # 传入的数据集, 必须参数
         batch_size=32,  # 输出的batch大小
-        shuffle=True,  # 数据是否打乱
+        shuffle=True,  # 数据是否打乱˙
         num_workers=2)  # 进程数, 0表示只有主进程
 
     # 定义优化器
@@ -102,16 +106,93 @@ def start_train():
     torch.save(alexnet.state_dict(), "./model/alexnet_for_cifar10.pth")
 
 
-def test_train_result():
+def load_trained_model():
     alexnet = models.alexnet()
+    # 先改变输出维度
+    fc_in_features = alexnet.classifier[6].in_features
+    alexnet.classifier[6] = torch.nn.Linear(fc_in_features, 10)
+    # 然后加载上面修改输出维度为10的训练之后的模型
     alexnet.load_state_dict(torch.load("./model/alexnet_for_cifar10.pth"))
-    print(alexnet.state_dict())
-    # 准备验证数据
+    # 打印参数 参数太多了。。。
+    # for parameter in alexnet.named_parameters():
+    #     print(parameter)
+    return alexnet
+
+
+def test_train_result():
+    alexnet = load_trained_model()
+
+    # 准备验证数据 直接使用训练数据，这里给弄反了。那验证数据去训练，拿训练数据去测试。
+    transform = transforms.Compose([transforms.Resize((224, 224)),  # 感觉这里RandomResize不是很好 Resize比较好。
+                                    transforms.ToTensor(),
+                                    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                         std=[0.229, 0.224, 0.225])])  # 需要再研究下这个标准化的目的是啥 感觉标准化之后就看不清了
+    cifar10_dataset = torchvision.datasets.CIFAR10(root="./data",
+                                                   train=True,
+                                                   transform=None,
+                                                   target_transform=None,
+                                                   download=True)
+    cifar10_dataset_trans = torchvision.datasets.CIFAR10(root="./data",
+                                                         train=True,
+                                                         transform=transform,
+                                                         target_transform=None,
+                                                         download=True)
+
+    # index = 30
+    # print(cifar10_dataset_trans)
+    # item = cifar10_dataset[index][0]
+    # trans_item = cifar10_dataset_trans[index][0]
+    # # 设置数据加载
+    # item.show()
+    # transforms.ToPILImage()(trans_item).show()
+    #
+    # # 验证结果
+    # res = alexnet(trans_item.unsqueeze(0))
+    # print_res(res)
+    rightCount = 0
+    for index in range(256):
+        trans_item = cifar10_dataset_trans[index][0]
+        res = alexnet(trans_item.unsqueeze(0))
+        if get_res(res.argmax().item()) == get_res(cifar10_dataset_trans[index][1]):
+            rightCount += 1
+        print(get_res(res.argmax().item()) + "---" + get_res(cifar10_dataset_trans[index][1]))
+    print("rate is:" + str(rightCount / 256))
+
+
+def test_trained_model_by_local_img():
+    alexnet = load_trained_model()
+    img = Image.open('img/cat.jpg')
+    transform = transforms.Compose([transforms.RandomResizedCrop((224, 224)),
+                                    transforms.ToTensor(),
+                                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+    input_tensor = transform(img).unsqueeze(0)
+    # 得到模型输出结果
+    res = alexnet(input_tensor)
+    # 打印类型
+    print(get_res(res.argmax().item()))
+
+
+# 打印结果
+def get_res(index):
+    cate = {
+        0: "飞机",
+        1: "骑车",
+        2: "小鸟",
+        3: "猫",
+        4: "鹿",
+        5: "狗",
+        6: "狐狸",
+        7: "马",
+        8: "船",
+        9: "卡车",
+    }
+    return cate.get(index, None)
 
 
 if __name__ == '__main__':
-    # test_alexnet_model()
+    test_alexnet_model()
     # load_data()
     # get_modify_classifier()
-    start_train()
+    # start_train()
     # test_train_result()
+    # test_trained_model_by_local_img()
