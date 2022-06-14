@@ -1,11 +1,13 @@
 from PIL import Image
 import numpy as np
 from matplotlib import pyplot as plt
+from numpy import shape
 
 
 def test1():
     img = Image.open("jike.jpg")
     img_arr = np.asarray(img)
+    print(shape(img_arr))
     # 索引与切片
     arr0 = img_arr[:, :, 0]
     arr1 = img_arr[:, :, 1]
@@ -46,9 +48,11 @@ def test1():
     # plt.imshow(blue_arr.astype(np.uint8))
     # plt.axis('off')
     # plt.savefig('./rgb_pillow.png', dpi=150)
-
+    print("---------")
+    print(shape(red_arr))
     # 转换回Image然后输入
     im = Image.fromarray(np.uint8(red_arr))
+    im.show()
     im.save("red.jpg")
 
 
@@ -98,8 +102,8 @@ def test_mask():
 
 
 if __name__ == '__main__':
-    # test1()
+    test1()
     # test_copy()
     # testMaxAndSort()
 
-    test_mask()
+    # test_mask()

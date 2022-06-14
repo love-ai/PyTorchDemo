@@ -4,3 +4,4 @@ numpy==1.21.4
 matplotlib==3.4.3
 Pillow==8.4.0
 IPython==7.30.1
+tensorboard==2.9.1
