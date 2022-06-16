@@ -3,8 +3,10 @@ from PIL import Image
 from numpy import shape
 from torch.utils.tensorboard import SummaryWriter
 
+
 # 生成测试数据后， 去代码的当前目录执行：
 # tensorboard --logdir=runs 然后浏览器中查看
+# tensorboard 只能在训练完成后查看训练的曲线
 
 def test_tensorboard():
     writer = SummaryWriter()

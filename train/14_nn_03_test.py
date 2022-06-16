@@ -3,6 +3,7 @@ import torchvision.datasets
 from PIL.Image import Image
 from torch import nn
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 
 
@@ -44,19 +45,21 @@ def train():
                             num_workers=2)
     # 定义优化器
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, weight_decay=1e-2, momentum=0.9)
-
+    writer = SummaryWriter()
     # 训练
-    for epoch in range(3):
+    n_iter = 0
+    for epoch in range(1):
         for item in dataLoader:
-            img = item.to(device)
-            output = model(img[0])
-            target = img[1]
+            output = model(item[0])
+            target = item[1]
             # 使用交叉熵损失函数, 数据、模型、损失函数，有GPU的话都要放到GPU上。
             loss = nn.CrossEntropyLoss().to(device)(output, target)
             print('Epoch {}, Loss {}'.format(epoch + 1, loss))
             model.zero_grad()
             loss.backward()
             optimizer.step()
+            writer.add_scalar('Loss/train', loss, n_iter)
+            n_iter += 1
     # 保存默认
     # torch.save(model.state_dict(), "./model/mycnn_for_cifar10.pth")
 

@@ -1,12 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import random
-
+from torch.utils.tensorboard import SummaryWriter
 import torch
 from torch import nn
 
-
 # 生成测试数据
+from visdom import Visdom
+
+
 def test1():
     w = 2
     b = 3
@@ -50,7 +52,14 @@ def test():
     # 转换x_train为tensor
     input = torch.from_numpy(x_train)
     print("初始模型：" + str(model.state_dict()) + "\n\n")
-    for _ in range(1000):
+
+    writer = SummaryWriter()
+    # 实例化一个窗口
+    viz = Visdom(port=8097)
+    # 初始化窗口的信息
+    viz.line([0.], [0.], win='train_loss', opts=dict(title='train loss'))
+
+    for n_iter in range(1000):
         # 计算模型的全量输出
         output = model(input)
         # 将当前参数计算的全量输出和实际值带入 计算MSE损失函数
@@ -61,6 +70,8 @@ def test():
         loss.backward()
         # 用计算的梯度去做优化
         optimizer.step()
+        writer.add_scalar("Loss/train", loss, n_iter)
+        viz.line([loss.item()], [n_iter], win='train_loss', update='append')
         print('Loss {}'.format(loss))
         print("训练结果：" + str(model.state_dict()) + "\n\n")
 
